@@ -37,7 +37,16 @@ Vagrant.configure("2") do |config|
   # Create a public network, which generally matched to bridged network.
   # Bridged networks make the machine appear as another physical device on
   # your network.
-  config.vm.network "public_network"
+  #config.vm.network "public_network"
+  if ENV['VAGRANT_BRIDGE']
+    interfaces  = %x(VBoxManage list bridgedifs)
+    re          = /Name: +(.*#{ENV['VAGRANT_BRIDGE']}.*)/
+
+    if interfaces =~ re
+      config.vm.network :public_network, bridge: $1, ip: ENV['VAGRANT_PXE_IP']
+    end
+  end
+
 
   # Share an additional folder to the guest VM. The first argument is
   # the path on the host to the actual folder. The second argument is
@@ -63,5 +72,9 @@ Vagrant.configure("2") do |config|
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "file", source: "setup_pxe.sh", destination: "/tmp/setup_pxe.sh"
-  config.vm.provision :shell, path: "setup_pxe.sh"
+  config.vm.provision "file", source: "variables.sh", destination: "/tmp/variables.sh"
+  config.vm.provision "shell", inline: <<-SHELL
+    cd /tmp
+    sh setup_pxe.sh
+  SHELL
 end

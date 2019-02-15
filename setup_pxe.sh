@@ -1,32 +1,17 @@
 #!/usr/bin/env bash
 set -eu
 
-# username and password for VM
-USER_NAME=
-FULL_NAME=
-password=
-HASH=
-while [ x"$USER_NAME" = "x" ]
-do
-  read -p "user name for new machine: " USER_NAME
-done
-while [ x"$FULL_NAME" = "x" ]
-do
-  read -p "full name for $(eval echo $USER_NAME): " FULL_NAME
-done
-read -sp "Password for $(eval echo $USER_NAME): "  password
+cd /tmp
+
+# import username and password for VM
+. /tmp/variables.sh
 
 # install packages
 apt-get update
 apt-get upgrade -y
 apt-get install -y dnsmasq pxelinux syslinux-common openssh-server whois
 
-# generate hash
-HASH=$(echo $password | mkpasswd -m sha-512 -s)
-password=
-
 # TFTP repository
-cd /tmp
 wget -q http://archive.ubuntu.com/ubuntu/dists/bionic-updates/main/installer-amd64/current/images/netboot/netboot.tar.gz
 mkdir -p /var/lib/tftpboot/
 tar xvf netboot.tar.gz -C /var/lib/tftpboot
@@ -42,7 +27,7 @@ label auto
 	menu label ^Ubuntu Server 18.04(LTS) auto install
         menu default
         kernel ubuntu-installer/amd64/linux
-	append auto=true priority=critical url=tftp://__TFTP_SERVER_IP__/preseed.cfg DEBCONF_DEBUG=5 initrd=ubuntu-installer/amd64/initrd.gz quiet --
+	append auto=true priority=critical url=tftp://$VAGRANT_PXE_IP/preseed.cfg DEBCONF_DEBUG=5 initrd=ubuntu-installer/amd64/initrd.gz quiet --
 
 default ubuntu-installer/amd64/boot-screens/vesamenu.c32
 prompt 0
@@ -78,9 +63,9 @@ d-i mirror/http/hostname string archive.ubuntu.com
 d-i mirror/http/directory string /ubuntu
 d-i mirror/http/proxy string
 d-i passwd/root-login boolean false
-d-i passwd/user-fullname string $(eval echo $FULL_NAME)
-d-i passwd/username string $(eval echo $USER_NAME)
-d-i passwd/user-password-crypted $(eval echo '$HASH')
+d-i passwd/username string $USER_NAME
+d-i passwd/user-fullname string $FULL_NAME
+d-i passwd/user-password-crypted password $HASH
 d-i user-setup/encrypt-home boolean false
 d-i clock-setup/utc boolean true
 d-i time/zone string Asia/Tokyo
@@ -104,10 +89,6 @@ d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean true
 d-i finish-install/reboot_in_progress note
 EOS
-
-#TFTP_SERVER_IP=
-
-#sed -i -e "s/__TFTP_SERVER_IP__/$(eval echo $TFTP_SERVER_IP)/" /var/lib/tftpboot/pxelinux.cfg/default
 
 service dnsmasq start
 
