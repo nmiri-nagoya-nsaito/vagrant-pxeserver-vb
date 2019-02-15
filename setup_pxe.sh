@@ -42,7 +42,7 @@ echo "DNSMASQ_EXCEPT=lo" >> /etc/default/dnsmasq
 cat << EOS > /etc/dnsmasq.conf 
 port = 0
 log-dhcp
-dhcp-range=172.23.0.0, proxy
+dhcp-range=$VAGRANT_PXE_NETIP, proxy
 dhcp-boot=pxelinux.0
 pxe-service=x86PC,"Network Boot",pxelinux
 enable-tftp
