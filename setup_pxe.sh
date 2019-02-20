@@ -28,10 +28,15 @@ label auto
         menu default
         kernel ubuntu-installer/amd64/linux
 	append auto=true priority=critical url=tftp://$VAGRANT_PXE_IP/preseed.cfg DEBCONF_DEBUG=5 initrd=ubuntu-installer/amd64/initrd.gz quiet --
+label nvme
+        menu label ^Ubuntu Server 18.04(LTS) auto install (to NVMe disk)
+        menu default
+        kernel ubuntu-installer/amd64/linux
+        append auto=true priority=critical url=tftp://$VAGRANT_PXE_IP/preseed_nvme.cfg DEBCONF_DEBUG=5 initrd=ubuntu-installer/amd64/initrd.gz quiet --
 
 default ubuntu-installer/amd64/boot-screens/vesamenu.c32
 prompt 0
-timeout 2
+timeout 0
 EOS
 
 # dnsmasq (DHCP proxy, TFTP server)
@@ -89,6 +94,10 @@ d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean true
 d-i finish-install/reboot_in_progress note
 EOS
+
+cp /var/lib/tftpboot/preseed.cfg /var/lib/tftpboot/preseed_nvme.cfg
+echo "d-i partman-auto/disk string /dev/nvme0n1" >> /var/lib/tftpboot/preseed_nvme.cfg
+echo "d-i grub-installer/bootdev  string /dev/nvme0n1" >> /var/lib/tftpboot/preseed_nvme.cfg
 
 service dnsmasq start
 
